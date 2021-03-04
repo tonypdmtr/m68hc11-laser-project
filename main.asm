@@ -1,492 +1,459 @@
-; *NAMES: RENE MOISE KWIBUKA & DAVID BURMEIER
-; *START DATE SOFTWARE : OCTOBER 10, 2015.
-; *END DATE SOFTWARE:     NOVEMBER 05, 2015
-; *START DATE HARDWARE: JANUARY 4TH, 2016.
-; *END DATE HARDWARE      MARCH 10TH, 2016
-; *EDITED ALONG WITH HARDWARE CONSTRUCTION: JAN - MARCH 2016
+;*******************************************************************************
+; DESCRIPTION         : THIS PROGRAM IS A LASER PROJECT PROGRAM
+; NAMES               : RENE MOISE KWIBUKA & DAVID BURMEIER
+; START DATE SOFTWARE : OCTOBER 10, 2015
+; END DATE SOFTWARE   : NOVEMBER 05, 2015
+; START DATE HARDWARE : JANUARY 4TH, 2016
+; END DATE HARDWARE   : MARCH 10TH, 2016
+; EDITED ALONG WITH HARDWARE CONSTRUCTION: JANUARY - MARCH 2016
+;*******************************************************************************
 
-; *THIS PROGRAM IS A LASER PROJECT PROGRAM
+#ifdef ...
+; Macros to help locate hardcoded values other than -1, 0, and 1
+common              macro
+                    mset      #
+                    mset      0,#Hint Hardcoded value: ~macro~ ~1~
+          #ifnum ~#1~
+            #if ~#1~ > 1
+                    ~text~
+            #else if ~#1~ < -1
+                    ~text~
+            #endif
+          #endif
+;                   #Hint     ~macro~ ~1~
+                    ~macro~   ~1~
+                    endm
+          ;--------------------------------------
+lda                 macro
+                    @common   ~@~
+                    endm
+          ;--------------------------------------
+sta                 macro
+                    @common   ~@~
+                    endm
+          ;--------------------------------------
+ldb                 macro
+                    @common   ~@~
+                    endm
+          ;--------------------------------------
+stb                 macro
+                    @common   ~@~
+                    endm
+          ;--------------------------------------
+ldx                 macro
+                    @common   ~@~
+                    endm
+          ;--------------------------------------
+stx                 macro
+                    @common   ~@~
+                    endm
+          ;--------------------------------------
+ldy                 macro
+                    @common   ~@~
+                    endm
+          ;--------------------------------------
+sty                 macro
+                    @common   ~@~
+                    endm
+          ;--------------------------------------
+lds                 macro
+                    @common   ~@~
+                    endm
 
+                    #MCF
+#endif
+;*******************************************************************************
+; CONSTANTS
+;*******************************************************************************
 
-;****************************************************************************************
-;*******                         START OF THE PROGRAM        ********
-;****************************************************************************************
+REGS                equ       $1000
+D_ACONV             equ       REGS+$39            ; OPTION
+ST_REG              equ       REGS+$30            ; A/D CONTROL/STATUS REGISTER
+ADR_READ            equ       REGS+$31            ; READ CONVERTED ANALOG FROM HERE
 
-                    org       $E000               ; WHERE TO STORE THE PROGRAM (BENEFIT OF ASSEMBLER)
+STACKTOP            equ       $FF                 ; STACKTOP VALUE
 
-;****************************************************************************************
-;*******                         DEFINE CONSTANTS                   ********
-;****************************************************************************************
-COUNTER             equ       $10                 ; COUNTER
 SHIFT_VAL           equ       18                  ; SHIFT MAX VALUE
-BUFFER              equ       $20                 ; BUFFER LOCATION
-MODE_L              equ       $30                 ; MODE LOCATION
-SHIFT_L             equ       $40                 ; SHIFT LOCATION
-X_OFFSET            equ       $50                 ; X_OFFSET LOCATION.
-MULTLASSTR          equ       $60                 ; WHEN MULTIPLYING BY 32, WE NEED THIS LOCATION
-DELCOUNT            equ       $70                 ; DELAY COUNTER HOLDER
-STACK               equ       $FF                 ; STACK VALUE
+
 OFF                 equ       $A000               ; LASER OFF
 ON                  equ       $A001               ; LASER ON
+
 PIA_DDRA            equ       $B000               ; PIA DDRA
 PIA_CRA             equ       $B001               ; PIA CRA
 PIA_DDRB            equ       $B002               ; PIA DRRB
 PIA_CRB             equ       $B003               ; PIA CRB
-REG_0               equ       $C000               ; INITIALIZE LCD REGISTER 0
-REG_1               equ       $C001               ; SET LCD REGISTER 1
+
+LCD_0               equ       $C000               ; INITIALIZE LCD REGISTER 0
+LCD_1               equ       $C001               ; SET LCD REGISTER 1
+
 KEYBD               equ       $D000               ; KEYBOARD INPUT
-ASCII_TABLE         equ       $F000               ; ASCII TABLE LOCATION
-MODE_3_STR          equ       $F900               ; MODE 3 STRING LOCATION
-D_ACONV             equ       $1039               ; OPTION
-ST_REG              equ       $1030               ; A/D CONTROL/STATUS REGISTER
-ADR_READ            equ       $1031               ; READ CONVERTED ANALOG FROM HERE
-MODE4_PATTERN       equ       $F4C0               ; MODE_4 LOCATION
 
-;****************************************************************************************
-;*******                         CHARACTERS LOCATION                ********
-;****************************************************************************************
+LOGIC_A             equ       $E103
+LOGIC_B             equ       $F101
+LOGIC_C             equ       $E100
 
-DIG_0               equ       $F040               ; Digit 0 to Digit 9 sequentially.
-DIG_1               equ       $F060
-DIG_2               equ       $F080
-DIG_3               equ       $F0A0
-DIG_4               equ       $F0C0
-DIG_5               equ       $F0E0
-DIG_6               equ       $F100
-DIG_7               equ       $F120
-DIG_8               equ       $F140
-DIG_9               equ       $F160
-LET_A               equ       $F180               ; Letter A through Letter z
-LET_B               equ       $F1A0
-LET_C               equ       $F1C0
-LET_D               equ       $F1E0
-LET_E               equ       $F200
-LET_F               equ       $F220
-LET_G               equ       $F240
-LET_H               equ       $F260
-LET_I               equ       $F280
-LET_J               equ       $F2A0
-LET_K               equ       $F2C0
-LET_L               equ       $F2E0
-LET_M               equ       $F300
-LET_N               equ       $F320
-LET_O               equ       $F340
-LET_P               equ       $F360
-LET_Q               equ       $F380
-LET_R               equ       $F3A0
-LET_S               equ       $F3C0
-LET_T               equ       $F3E0
-LET_U               equ       $F400
-LET_V               equ       $F420
-LET_W               equ       $F440
-LET_X               equ       $F460
-LET_Y               equ       $F480
-LET_Z               equ       $F4A0
+;*******************************************************************************
+                    #RAM
+;*******************************************************************************
 
-;****************************************************************************************
-;*******                         INITIALIZATION                                  ********
-; *Since we are using subroutines and interrupts, some initializations are a must.
-; *Among them are to clear index, initialize the stack,and initialize the buffer.
-;****************************************************************************************`
-                    cli                           ; CLEAR INTERRUPT INDEX
-                    clr       MODE_L              ; CLEAR MODE
-                    inc       MODE_L              ; MAKE MODE 1
-                    clr       SHIFT_L             ; CLEAR SHIFT VALUE HOLDER
-                    clr       X_OFFSET            ; CLEAR X_OFFSET
-                    lds       #STACK              ; INITIALIZE THE STACK POINTER
-                    lda       #$FF                ; LOAD A WITH FF
-                    ldy       #BUFFER             ; LOAD Y WITH BUFFER STARTING LOCATION
-                    sta       BUFFER              ; STORE FF AT BUFFER
-                    sta       BUFFER+1            ; STORE FF AT BUFFER
-                    sta       BUFFER+2            ; STORE FF AT BUFFER
-                    sta       BUFFER+3            ; STORE FF AT BUFFER
+counter             rmb       1                   ; counter
+buffer              rmb       16                  ; buffer location
+mode_loc            rmb       1                   ; mode location
+shift_loc           rmb       1                   ; shift location
+x_offset            rmb       1                   ; X_OFFSET LOCATION
+delcount            rmb       1                   ; delay counter holder
 
-;*******                 INITIALIZATION LCD                   ********
+;*******************************************************************************
+                    #ROM      $E000               ; WHERE TO STORE THE PROGRAM
+;*******************************************************************************
 
-                    bsr       INIT_LCD            ; jump to subroutine init lcd
-                    bra       PIA_INIT            ; branch to pia and follow up to main
+;*******************************************************************************
 
-INIT_LCD
-;** INITIALIZING THE ADPU bit 7 ($1039). Allow 100 us before initializing another command.
-
+INIT_LCD            proc
+          ;--------------------------------------
+          ; INITIALIZING THE ADPU bit 7 ($1039).
+          ; Allow 100 us before initializing another command.
+          ;--------------------------------------
                     ldx       #D_ACONV            ; load x with $1039.
-                    bset      0,x,%10000000       ; SET BIT 7 OF DIG ANAL CONVER
+                    bset      ,x,%10000000        ; SET BIT 7 OF DIG ANAL CONVER
 
-                    ldx       #REG_0              ; LOAD X WITH REG_0 VALUE
-HERE1               brset     0,x,$80,HERE1       ; BRANCH BACK HERE IF BF = 1
+                    ldx       #LCD_0              ; LOAD X WITH LCD_0 VALUE
+                    brset     ,x,$80,*            ; BRANCH BACK HERE IF BF = 1
                     lda       #$01                ; LOAD A WITH $01
-                    sta       REG_0               ; STORE IN REG_0
+                    sta       LCD_0               ; STORE IN LCD_0
 
-HERE2               brset     0,x,$80,HERE2       ; BRANCH BACK HERE IF BF = 1
+                    brset     ,x,$80,*            ; BRANCH BACK HERE IF BF = 1
                     lda       #$30                ; LOAD A WITH $30
-                    sta       REG_0               ; STORE IN REG_0
+                    sta       LCD_0               ; STORE IN LCD_0
 
-HERE3               brset     0,x,$80,HERE3       ; BRANCH BACK HERE IF BF = 1
+                    brset     ,x,$80,*            ; BRANCH BACK HERE IF BF = 1
                     lda       #$08                ; LOAD A WITH $08
-                    sta       REG_0               ; STORE IN REG_0
+                    sta       LCD_0               ; STORE IN LCD_0
 
-HERE4               brset     0,x,$80,HERE4       ; BRANCH BACK HERE IF BF = 1
+                    brset     ,x,$80,*            ; BRANCH BACK HERE IF BF = 1
                     lda       #$06                ; LOAD A WITH $06
-                    sta       REG_0               ; STORE IN REG_0
+                    sta       LCD_0               ; STORE IN LCD_0
 
-HERE5               brset     0,x,$80,HERE5       ; BRANCH BACK HERE IF BF = 1
+                    brset     ,x,$80,*            ; BRANCH BACK HERE IF BF = 1
                     lda       #$3C                ; LOAD A WITH $3C
-                    sta       REG_0               ; STORE IN REG_0
+                    sta       LCD_0               ; STORE IN LCD_0
 
-HERE6               brset     0,x,$80,HERE6       ; BRANCH BACK HERE IF BF = 1
+                    brset     ,x,$80,*            ; BRANCH BACK HERE IF BF = 1
                     lda       #$0F                ; LOAD A WITH $0F
-                    sta       REG_0               ; STORE IN REG_0
+                    sta       LCD_0               ; STORE IN LCD_0
 
-HERE7               brset     0,x,$80,HERE7       ; BRANCH BACK HERE IF BF = 1
-
+                    brset     ,x,$80,*            ; BRANCH BACK HERE IF BF = 1
                     rts                           ; ONLY RETURN IF NOT DONE WITH INITIALIZING
 
+;*******************************************************************************
+; INITIALIZATION
+; Since we are using subroutines and interrupts, some initializations are a must.
+; Among them are to clear index, initialize the stack,and initialize the buffer.
 
-;*******                 INITIALIZATION OF PIA                ********
+Start               proc
+                    cli                           ; Enable interrupts
+                    lda       #1
+                    sta       mode_loc            ; Select mode 1
+                    clr       shift_loc
+                    clr       x_offset
+                    lds       #STACKTOP
+                    lda       #$FF
+                    ldy       #buffer
+                    sta       buffer
+                    sta       buffer+1
+                    sta       buffer+2
+                    sta       buffer+3
+                    bsr       INIT_LCD            ; Initialize LCD
+;                   bra       PIA_INIT
 
-PIA_INIT
+;*******************************************************************************
+; Initialize PIA
 
-;***************          INITIALIZE PIA A (X VALUES)    *************************
+PIA_INIT            proc
+          ;-------------------------------------- ; INITIALIZE PIA A (X VALUES)
                     ldx       #PIA_CRA            ; LOAD PIA CRA VALUE TO X
-                    bclr      0,x,%00000100       ; SET BIT 2 OF CRA TO 0 (ACCESS DDRA)
+                    bclr      ,x,%00000100        ; SET BIT 2 OF CRA TO 0 (ACCESS DDRA)
                     lda       #$FF                ; LOAD ACC A WITH FF
                     sta       PIA_DDRA            ; STORE FF IN B000 (SET DDRA TO FF)
                     ldx       #PIA_CRA            ; LOAD PIA CRA TO X
-                    bset      0,x,%00000100       ; SET BIT 2 OF CRA TO 1 (ACCESS DRA)
-
-;***************          INITIALIZE PIA B  (Y VALUES)   *************************
+                    bset      ,x,%00000100        ; SET BIT 2 OF CRA TO 1 (ACCESS DRA)
+          ;-------------------------------------- ; INITIALIZE PIA B  (Y VALUES)
                     ldx       #PIA_CRB            ; LOAD CRB VALUE IN X
-                    bclr      0,x,%00000100       ; SET BIT 2 OF CRB TO 0 (ACCESS DDRB)
+                    bclr      ,x,%00000100        ; SET BIT 2 OF CRB TO 0 (ACCESS DDRB)
                     lda       #$FF                ; LOAD ACC A WITH FF
                     ldx       #PIA_CRB            ; LOAD CRB VALUE IN X
                     sta       PIA_DDRB            ; STORE FF IN B002 (SET DDRB TO FF)
-                    bset      0,x,%00000100       ; SET BIT 2 OF CRB TO 1 (ACCESS DRB)
-
+                    bset      ,x,%00000100        ; SET BIT 2 OF CRB TO 1 (ACCESS DRB)
                     jsr       DELAY               ; TO ENSURE COMPLETE ADPU INITIALIZAION, DELAY
-
-; ANOTHER INITIALIZATION OF D/A AFTER AT LEAST 100us
+          ;-------------------------------------- ; ANOTHER INITIALIZATION OF D/A AFTER AT LEAST 100us
                     ldx       #ST_REG             ; LOAD X WITH $1030
-                    bset      0,x,%00100000       ; SET BIT 5
+                    bset      ,x,%00100000        ; SET BIT 5
+;                   bra       MAIN
 
-;****************************************************************************************
-;*******                                 MAIN                                    ********
-;****************************************************************************************`
+;*******************************************************************************
+; MAIN
+;*******************************************************************************
 
-MAIN
+MAIN                proc
                     lda       ADR_READ            ; LOAD A WITH A/D CONVERTER VALUE
-                    sta       $E103               ; PROGRAM IT OUT AT $E103 (FOR THE SAKE OF LOGIC ANALYZER)
-                    clr       COUNTER             ; CLEAR COUNTER LOCATION
-                    inc       COUNTER             ; STORE A 1 IN COUNTER LOCATION
-                    ldx       #MODE_L             ; LOADING X WITH MODE_LOC
-                    lda       COUNTER             ; LOAD COUNTER IN A
-                    cmpa      0,x                 ; CHECK IF MODE IS EQUAL TO COUNTER (1 SO FAR)
-                    beq       MAIN                ; IF YES BRANCH TO MAIN
-                    inc       COUNTER             ; MAKE COUNTER 2
-                    lda       COUNTER             ; LOAD 2 IN A
-                    cmpa      0,x                 ; CHECK IF MODE IS 2
-                    beq       MODE_2              ; BRANCH TO MODE 2
-                    inc       COUNTER             ; MAKE COUNTER 3
-                    lda       COUNTER             ; LOAD 3 IN A
-                    cmpa      0,x                 ; CHECK IF MODE IS 3
-                    beq       GOMODE_3            ; BRANCH TO MODE 3
-                    inc       COUNTER             ; MAKE COUNTER 4
-                    lda       COUNTER             ; LOAD 4 IN A
-                    cmpa      0,x                 ; CHECK IF MODE IS 4
-                    beq       GOMODE_4            ; BRANCH TO MODE 4
-                    bra       MAIN                ; BRANCH TO MAIN
+                    sta       LOGIC_A             ; PROGRAM IT OUT AT $E103 (FOR THE SAKE OF LOGIC ANALYZER)
+          ;--------------------------------------
+                    lda       #1
+                    sta       counter             ; STORE A 1 IN COUNTER LOCATION
+                    ldx       #mode_loc           ; LOADING X WITH MODE_LOC
+                    cmpa      ,x                  ; CHECK IF MODE IS EQUAL TO COUNTER (1 SO FAR)
+                    beq       MAIN
+          ;--------------------------------------
+                    inca                          ; make counter 2
+                    sta       counter
+                    cmpa      ,x                  ; check if mode is 2
+                    beq       MODE_2
+          ;--------------------------------------
+                    inca                          ; make counter 3
+                    sta       counter
+                    cmpa      ,x                  ; check if mode is 3
+                    beq       MODE_3
+          ;--------------------------------------
+                    inca                          ; make counter 4
+                    sta       counter             ; load 4 in a
+                    cmpa      ,x                  ; check if mode is 4
+                    bne       MAIN
+          ;--------------------------------------
+                    jmp       MODE_4
 
-GOMODE_3
-                    bra       MODE_3              ; JUMP TO MODE 3 JUMP TO MODE 3
+;*******************************************************************************
+; MODE_2
+;*******************************************************************************
 
-GOMODE_4
-                    jmp       MODE_4              ; JUMP TO MODE 4 JUMP TO MODE 4
-
-
-;****************************************************************************************
-;*******                         MODE_2                   ********
-;****************************************************************************************
-
-MODE_2
-
-CHECKB
-                    lda       #$FF                ; LOADS $FF INTO ACCUMULATOR A
-                    cmpa      0,Y                 ; CHECK IF VALUE IN BUFFER IS $FF
+MODE_2              proc
+                    lda       #$FF
+                    cmpa      ,y                  ; CHECK IF VALUE IN BUFFER IS $FF
                     beq       MAIN                ; IF BUFFER CONTAINS $FF, GO BACK TO MAIN
-                    ldab      0,Y                 ; LOAD VALUE IN BUFFER INTO ACCUMULATOR B
-                    lda       #32                 ; LOAD A WITH 32
-                    mul                           ; MULTIPLY A WITH B
+                    ldb       ,y
+                    lda       #32
+                    mul
                     addd      #DIG_0              ; ADD WHAT IS IN D WITH THE VALUE AT LASER
-                    std       MULTLASSTR          ; STORE THE LOCATION AT THIS MULTLASSTR
-                    ldx       MULTLASSTR          ; LOAD IT FROM MULTLASSTR
+                    xgdx
 
-NEXTY
-                    lda       #$FF                ; LOAD #$FF INTO ACCUMULATOR A
-                    cmpa      0,x                 ; COMPARE THE Y COORDINATE TO $FF
-                    beq       LASOFFADJ           ; IF TRUE, TURN OFF THE LASER
-                    lda       #$00                ; LOAD #$00 INTO ACCUMULATOR A
-                    cmpa      0,x                 ; COMPARE THE Y COORDINATE TO $00
-                    beq       LASOFFNEXTY         ; IF TRUE, TURN OFF THE LASER
-                    lda       #$01                ; LOAD #$01 INTO ACCUMULATOR A
-                    cmpa      0,x                 ; COMPARE THE Y COORDINATE TO $01
-                    beq       LASONNEXTY          ; TURN LASER ON
-                    bsr       DISPLAY             ; JUMP TO SUBROUTINE
-                    bra       NEXTY               ; BRANCH
+Loop@@              lda       #$FF
+                    cmpa      ,x                  ; compare the Y coordinate to $FF
+                    beq       OffAdjust@@         ; if true, turn off the laser
+                    tst       ,x                  ; compare the Y coordinate to $00
+                    beq       Off@@               ; if true, turn off the laser
+                    lda       #1
+                    cmpa      ,x                  ; compare the Y coordinate to $01
+                    beq       On@@                ; if same, turn laser on
+                    bsr       DISPLAY
+                    bra       Loop@@
 
+Off@@               bsr       LASOFF
+                    inx
+                    bra       Loop@@
 
-LASOFFNEXTY
-                    bsr       LASOFF              ; JUMP TO SUBROUTINE
-                    inx                           ; INCREMENT X
-                    bra       NEXTY               ; BRANCH TO NEXTY
+On@@                bsr       LASON
+                    inx
+                    bra       Loop@@
 
-LASONNEXTY
-                    bsr       LASON               ; JUMP TO SUBROUTINE
-                    inx                           ; INCREMENT X
-                    bra       NEXTY               ; BRANCH TO NEXTY
+OffAdjust@@         bsr       LASOFF
 
+                    ldx       #x_offset
+                    lda       ,x
+                    adda      #64
+                    cmpa      #255
+                    blo       AdjBuf@@
+                    clra
 
-LASOFFADJ
-                    bsr       LASOFF              ; JUMP TO LASOFF SUBROUTINE
-
-ADJUSTX
-                    ldx       #X_OFFSET           ; LOAD X WITH THE ADDRESS OF THE OFFSET
-                    lda       0,x                 ; LOAD A WITH THE VALUE IN X
-                    adda      #64                 ; ADD 64 ON ACC VALUE
-                    cmpa      #255                ; COMPARE IT WITH 255
-                    blo       ADJBUFF             ; IF GREATER OR EQUAL GO ADJSUT BUFFER
-                    lda       #00                 ; LOAD A WITH 0
-
-ADJBUFF
-                    sta       0,x                 ; RESET THE X_OFFSET
-                    iny                           ; INCREMENT THE CURRENT BUFFER POINTER
-                    lda       0,Y
+AdjBuf@@            sta       ,x                  ; reset the X_OFFSET
+                    iny                           ; increment the current buffer pointer
+                    lda       ,y
                     cmpa      #$FF
-                    beq       RES_Y
-                    cpy       #$24                ; COMPARE IT WITH THE VALUE 24
-                    blo       GOMAIN              ; IF LESS BRA TO MAIN
-                    ldy       #BUFFER             ; ELSE RESET IT WITH 20
-                    bra       GOMAIN              ; AND GO BACK TO MAIN
+                    beq       RegY@@
+                    cpy       #$24                ; compare it with the value 24
+                    blo       GoMain
+                    bra       ResetAndMain@@
 
-RES_Y
-                    ldy       #BUFFER             ; ELSE RESET IT WITH 20
-                    clr       X_OFFSET
-                    bra       GOMAIN              ; AND GO BACK TO MAIN
+RegY@@              clr       x_offset
+ResetAndMain@@      ldy       #buffer             ; else reset it with 20
+GoMain              jmp       MAIN
 
+;*******************************************************************************
+; MODE_3
+;*******************************************************************************
 
-;****************************************************************************************
-;*******                         MODE_3                   ********
-;****************************************************************************************
+MODE_3              proc
+                    ldx       #MODE_3_STR
+Loop@@              lda       #$FF
+                    cmpa      ,x                  ; compare the Y coordinate to $FF
+                    beq       GOOFFMAIN           ; if true, turn off the laser
+                    tst       ,x                  ; compare the Y coordinate to $00
+                    beq       _1@@                ; if true, turn off the laser
+                    lda       #1
+                    cmpa      ,x                  ; compare the Y coordinate to $01
+                    beq       _2@@                ; turn laser on
+                    bsr       DISPLAY
+                    bra       Loop@@
 
-MODE_3
+GOOFFMAIN           bsr       LASOFF
+                    bra       GoMain
 
-                    ldx       #MODE_3_STR         ; LOAD X WITH MODE_3_STR LOCATION
-NEXTY_3
-                    lda       #$FF                ; LOAD #$FF INTO ACCUMULATOR A
-                    cmpa      0,x                 ; COMPARE THE Y COORDINATE TO $FF
-                    beq       GOOFFMAIN           ; IF TRUE, TURN OFF THE LASER
-                    lda       #$00                ; LOAD #$00 INTO ACCUMULATOR A
-                    cmpa      0,x                 ; COMPARE THE Y COORDINATE TO $00
-                    beq       GOOFFNEXTY3         ; IF TRUE, TURN OFF THE LASER
-                    lda       #$01                ; LOAD #$01 INTO ACCUMULATOR A
-                    cmpa      0,x                 ; COMPARE THE Y COORDINATE TO $01
-                    beq       GOONNEXTY3          ; TURN LASER ON
-                    bsr       DISPLAY             ; JUMP TO SUBROUTINE
-                    bra       NEXTY_3             ; BRANCH
+_1@@                bsr       LASOFF
+                    inx
+                    bra       Loop@@
 
-GOOFFMAIN
-                    bsr       LASOFF              ; JUMP TO SUBROUTINE
-                    bra       GOMAIN              ; BRANCH
+_2@@                bsr       LASON
+                    inx
+                    bra       Loop@@
 
-GOOFFNEXTY3
-                    bsr       LASOFF              ; JUMP TO SUBROUTINE
-                    inx                           ; INCREMENT X
-                    bra       NEXTY_3             ; BRANCH
+;*******************************************************************************
 
-GOONNEXTY3
-                    bsr       LASON               ; JUMP TO SUBROUTINE
-                    inx                           ; INCREMENT
-                    bra       NEXTY_3             ; BRANCH
-
-DISPLAY
-                    lda       0,x
-                    adda      X_OFFSET            ; ADD X TO OFFSET VALUE
-                    sta       PIA_DDRA            ; STORE IT AT PIA_DDRB (AT DDRB)
-                    inx                           ; INCREMENT X
-                    lda       0,x                 ; LOAD Y VALUE
-                    sta       PIA_DDRB            ; STORE A AT B000
-                    bsr       DELAY               ; JUMP TO DELAY
+DISPLAY             proc
+                    lda       ,x
+                    adda      x_offset            ; ADD X TO OFFSET VALUE
+                    sta       PIA_DDRA            ; STORE IT AT PIA_DDRA
+                    inx
+                    lda       ,x                  ; load Y value
+                    sta       PIA_DDRB
+                    bsr       DELAY
                     inx
                     rts
 
-LASON
-                    lda       #$FF                ; LOAD 0 IN A
-                    sta       ON                  ; STORE IN A000 AND TURN ON
-                    bsr       DELAY               ; JUMP TO DELAY
-                    rts
+;*******************************************************************************
 
-LASOFF
-                    lda       #$FF                ; LOAD 0 IN A
-                    sta       OFF                 ; STORE IN A000 AND TURN OFF
-                    bsr       DELAY               ; JUMP TO DELAY
-                    rts
+LASON               proc
+                    lda       #$FF                ; load 0 in A
+                    sta       ON                  ; store to turn on
+                    bra       DELAY
 
-GOMAIN
-                    jmp       MAIN                ; JUMP TO MAIN
+;*******************************************************************************
 
-DELAY
-                    clr       DELCOUNT            ; (3) LOAD X WITH 0
+LASOFF              proc
+                    lda       #$FF                ; load 0 in A
+                    sta       OFF                 ; store to turn off
+;                   bra       DELAY
+
+;*******************************************************************************
+
+DELAY               proc
+                    clr       delcount
                     lda       #250
 
-AGAIN               cmpa      DELCOUNT            ; (3) COMPARE 14 TO THE VAL
-                    beq       AGAIN4              ; (3) IF 14 GO RETURN
-                    inc       DELCOUNT            ; (6) INCREMENT DELAY COUNTER
-                    bra       AGAIN               ; (3) BRANCH AGAIN
+_1@@                cmpa      delcount            ; COMPARE 14 TO THE VAL
+                    beq       _2@@                ; IF 14 GO RETURN
+                    inc       delcount
+                    bra       _1@@
 
-AGAIN4              clr       DELCOUNT            ; (3) LOAD X WITH 0
+_2@@                clr       delcount
                     lda       ADR_READ
 
-AGAIN5              cmpa      DELCOUNT            ; (3) COMPARE 14 TO THE VAL
-                    beq       SUBRET              ; (3) IF 14 GO RETURN
-                    inc       DELCOUNT            ; (6) INCREMENT DELAY COUNTER
-                    nop                           ; TO WASTE SOME CYCLES
-                    nop                           ; TO WASTE SOME CYCLES
-                    nop                           ; TO WASTE SOME CYCLES
-                    nop                           ; TO WASTE SOME CYCLES
-                    nop                           ; TO WASTE SOME CYCLES
-                    nop                           ; TO WASTE SOME CYCLES
-                    nop                           ; TO WASTE SOME CYCLES
-                    bra       AGAIN5              ; (3) BRANCH AGAIN
+_3@@                cmpa      delcount            ; COMPARE 14 TO THE VAL
+                    beq       Done@@              ; IF 14 GO RETURN
+                    inc       delcount
+                    nop:7                         ; waste some cycles
+                    bra       _3@@
 
-SUBRET
-                    rts                           ; RETURN FROM SUBROUTINE.
+Done@@              equ       :AnRTS
 
-;****************************************************************************************
-;*******                         MODE_4                   ********
-;****************************************************************************************
-MODE_4
+;*******************************************************************************
+; MODE_4
+;*******************************************************************************
 
+MODE_4              proc
                     ldx       #MODE4_PATTERN      ; LOAD X WITH MODE_3_STR LOCATION
-NEXTY_4
-                    lda       #$FF                ; LOAD #$FF INTO ACCUMULATOR A
-                    cmpa      0,x                 ; COMPARE THE Y COORDINATE TO $FF
-                    beq       GOOFFMAIN           ; IF TRUE, TURN OFF THE LASER
-                    lda       #$00                ; LOAD #$00 INTO ACCUMULATOR A
-                    cmpa      0,x                 ; COMPARE THE Y COORDINATE TO $00
-                    beq       GOOFFNEXTY4         ; IF TRUE, TURN OFF THE LASER
-                    lda       #$01                ; LOAD #$01 INTO ACCUMULATOR A
-                    cmpa      0,x                 ; COMPARE THE Y COORDINATE TO $01
-                    beq       GOONNEXTY4          ; TURN LASER ON
+Loop@@              lda       #$FF
+                    cmpa      ,x                  ; compare the Y coordinate to $FF
+                    beq       GOOFFMAIN           ; if true, turn off the laser
+                    tst       ,x                  ; compare the Y coordinate to $00
+                    beq       Off@@               ; if true, turn off the laser
+                    lda       #1
+                    cmpa      ,x                  ; compare the Y coordinate to $01
+                    beq       On@@                ; turn laser on
                     bsr       DISPLAY
-                    bra       NEXTY_4
+                    bra       Loop@@
 
-
-GOOFFNEXTY4
-                    bsr       LASOFF              ; JUMP TO SUBROUTINE
-                    inx                           ; INCREMENT X
-                    bra       NEXTY_4             ; BRANCH
-
-GOONNEXTY4
-                    bsr       LASON               ; JUMP TO SUBROUTINE
+Off@@               bsr       LASOFF
                     inx
-                    bra       NEXTY_4             ; BRANCH
+                    bra       Loop@@
 
-;****************************************************************************************
-;*******         INTERRUPT BLOCK              ********
-;****************************************************************************************
-ISR
-                    ldab      KEYBD               ; READ FROM KEYBOARD
+On@@                bsr       LASON
+                    inx
+                    bra       Loop@@
+
+;*******************************************************************************
+; INTERRUPT BLOCK
+;*******************************************************************************
+
+ISR_Handler         proc
+                    ldb       KEYBD               ; READ FROM KEYBOARD
                     cmpb      #18                 ; COMPARE THE KEY VALUE TO MODE
-                    beq       MODE                ; GO UPDATE MODE
+                    beq       Mode@@              ; GO UPDATE MODE
                     cmpb      #19                 ; ELSE COMPARE TO 19
-                    beq       SHIFT               ; IF EQUAL GO UPDATE SHIFT
-                    addb      SHIFT_L             ; ELSE ADD B TO THE SHIFT VALUE
-                    clr       SHIFT_L             ; CLEAR SHIFT LOCATION
-                    ldy       #BUFFER             ; LOAD Y WITH BUFFER VALUE
+                    beq       Shift@@             ; IF EQUAL GO UPDATE SHIFT
+                    addb      shift_loc           ; ELSE ADD B TO THE SHIFT VALUE
+                    clr       shift_loc
+                    ldy       #buffer
 
-CHECKBUF
-                    lda       #$FF                ; LOAD A WITH FF
-                    cmpa      0,Y                 ; COMPARE A WITH WHAT IS POINTED TO BY Y
-                    bne       INCBUF              ; BRANCH NOT EQUAL
-STORE               stab      0,Y                 ; STORE THE KEY IN BUFFER
-                    ldx       #ASCII_TABLE        ; LOAD X WITH ACSCII_TABLE LOCATION
-                    abx                           ; ADD ACCUMULATOR B TO X
-                    lda       0,x                 ; LOAD IN ACC A WHAT IS POINTED TO BY Y
-HERE8               brset     0,x,$80,HERE8       ; BRANCH BACK HERE IF BF = 1
-                    sta       REG_1               ; STORE X AT REG_1
-HERE9               brset     0,x,$80,HERE9       ; BRANCH BACK HERE IF BF = 1
-                    bra       RETURN              ; BRANCH
+CheckBuf@@          lda       #$FF
+                    cmpa      ,y                  ; COMPARE A WITH WHAT IS POINTED TO BY Y
+                    bne       IncBuf@@
+                    stb       ,y                  ; STORE THE KEY IN BUFFER
+                    ldx       #ASCII_TABLE
+                    abx
+                    lda       ,x
+                    brset     ,x,$80,*            ; BRANCH BACK HERE IF BF = 1
+                    sta       LCD_1               ; STORE X AT LCD_1
+                    brset     ,x,$80,*            ; BRANCH BACK HERE IF BF = 1
+                    bra       Done@@
 
-INCBUF
-                    iny                           ; INCREMENT Y
+IncBuf@@            iny
                     cpy       #$24                ; COMPARE Y TO 24
-                    bne       CHECKBUF            ; BRANCH NOT EQUAL
-                    bra       RETURN              ; RETURN
+                    bne       CheckBuf@@
+                    bra       Done@@
 
-MODE
-                    lda       COUNTER
-                    sta       $F101
-                    lda       SHIFT_L             ; LOAD A WITH WHAT IS IN SHIFT_L
-                    cmpa      #$00                ; COMPARE IT WITH 0
-                    bne       CLEAR               ; BRANCH NOT EQUAL TO CLEAR
-                    clr       SHIFT_L             ; CLEAR SHIFT_L
-                    inc       MODE_L              ; INCREMENT THE MODE IN MODE_L
-                    lda       MODE_L              ; LOAD THE MODE VALUE IN A
-                    sta       $E100
+Mode@@              lda       counter
+                    sta       LOGIC_B
+                    lda       shift_loc           ; LOAD A WITH WHAT IS IN SHIFT_L
+                    bne       Clear@@             ; BRANCH NOT EQUAL TO CLEAR
+                    clr       shift_loc
+                    inc       mode_loc
+                    lda       mode_loc
+                    sta       LOGIC_C
                     cmpa      #5                  ; COMPARE THE MODE TO 5
-                    bne       RETURN              ; IF LESS RETURN
-                    clr       MODE_L              ; ELSE CLEAR THE MODE
-                    inc       MODE_L              ; MAKE IT A 1
-                    bra       RETURN              ; BRANCH TO RETURN
+                    bne       Done@@
+                    clr       mode_loc
+                    inc       mode_loc
+                    bra       Done@@
 
-SHIFT
-                    lda       SHIFT_L             ; LOAD A WITH THE SHIFT VALUE
-                                                  ; COMPARE IF IT IS 0
-                    beq       NOW20               ; IF 0, GO MAKE IT 20
-                    clra                          ; ELSE MAKE IT 0
-                    sta       SHIFT_L             ; STORE THE SHIFT VALUE BACK IN THE MEM LOC
-                    bra       RETURN              ; GO RETURN
+Shift@@             lda       shift_loc           ; LOAD A WITH THE SHIFT VALUE
+                    beq       Make20@@            ; IF 0, GO MAKE IT 20
+                    clra
+                    sta       shift_loc           ; STORE THE SHIFT VALUE BACK IN THE MEM LOC
+                    bra       Done@@
 
-NOW20
-                    lda       #SHIFT_VAL          ; LOAD A WITH 20
-                    sta       SHIFT_L             ; STORE THE SHIFT VALUE BACK IN SHIFT_L
-                    bra       RETURN              ; GO RETURN
+Make20@@            lda       #SHIFT_VAL          ; LOAD A WITH 20
+                    sta       shift_loc           ; STORE THE SHIFT VALUE BACK IN SHIFT_L
+                    bra       Done@@              ; GO RETURN
 
-CLEAR
-                    jsr       INIT_LCD
-                    clr       X_OFFSET            ; CLEAR X_OFFSET
-                    clr       SHIFT_L             ; CLEAR SHIFT
-                    ldx       #BUFFER             ; LOAD THE ADDRESS OF BUFFER IN X
+Clear@@             jsr       INIT_LCD
+                    clr       x_offset            ; CLEAR X_OFFSET
+                    clr       shift_loc           ; CLEAR SHIFT
+                    ldx       #buffer             ; LOAD THE ADDRESS OF BUFFER IN X
                     lda       #$FF                ; LOAD VALUE FF IN ACC A
-CLRAG               sta       0,x                 ; STORE WHAT IS STORED IN ACC IN THE BUFFER
+CLoop@@             sta       ,x                  ; STORE WHAT IS STORED IN ACC IN THE BUFFER
                     inx                           ; INCREMENT X
                     cpx       #$24                ; COMPARE WITH THE END OF THE BUFFER
-                    beq       RETURN              ; RETURN
-                    bra       CLRAG               ; CLEAR
+                    bne       CLoop@@             ; CLEAR
+Done@@              rti                           ; RETURN FROM THE INTERRUPT
 
-RETURN
-                    rti                           ; RETURN FROM THE INTERRUPT
+;*******************************************************************************
+; CONCLUDING LINES OF CODE
+;*******************************************************************************
 
-;****************************************************************************************
-;*******         CONCLUDING LINES OF CODE                     ********
-;****************************************************************************************
-
-;*******         LCDSTRING                    ********
-                    org       ASCII_TABLE
-                    fcb       $30,$31,$32,$33,$34,$35,$36,$37,$38,$39
-                    fcb       $41,$42,$43,$44,$45,$46,$47,$48,$49,$4A,$4B,$4C,$4D,$4E,$4F,$50,$51
-                    fcb       $52,$53,$54,$55,$56,$57,$58,$59,$5A
-
-;*******         MODE 3 LASER STRING                  ********
-                    org       MODE_3_STR          ; MODE_3_VECTOR
-                    fcb       5,5,01,5,251,251,251,251,5,5,5,251,251,00,05,251,01,251,5,00,$FF
-
-
-                    org       $FFF2               ; INTERRUPT VECTOR
-                    fdb       ISR                 ; FORM INTERRUPT VECTOR BYTE
-                    org       $FFFE               ; MOVES ASSEMBLER OUTPUT LOCATION TO $FFFE (FOR HARDWARE)
-                    fdb       $E000               ; FORMS RESET VECTOR FOR HARDWARE
-
-                    org       DIG_0
-                    fcb       $B                  ; X
+          ;-------------------------------------- ; LCDSTRING
+ASCII_TABLE         fcc       '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+          ;-------------------------------------- ; MODE 3 LASER STRING
+MODE_3_STR          fcb       5,5,01,5,251,251,251,251,5,5,5,251,251,00,05,251,01,251,5,00,$FF
+          ;--------------------------------------
+DIG_0               fcb       $B                  ; X
                     fcb       $A                  ; Y
                     fcb       $01                 ; ON
                     fcb       $B                  ; X
@@ -499,9 +466,8 @@ RETURN
                     fcb       $A                  ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       DIG_1
-                    fcb       $9                  ; X
+          ;--------------------------------------
+DIG_1               fcb       $9                  ; X
                     fcb       $9C                 ; Y
                     fcb       $01                 ; ON
                     fcb       $3C                 ; X
@@ -510,10 +476,8 @@ RETURN
                     fcb       $D                  ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-
-                    org       DIG_2
-                    fcb       $E                  ; X
+          ;--------------------------------------
+DIG_2               fcb       $E                  ; X
                     fcb       $B6                 ; Y
                     fcb       $01                 ; ON
                     fcb       $9                  ; X
@@ -540,9 +504,8 @@ RETURN
                     fcb       $15                 ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       DIG_3
-                    fcb       $C                  ; X
+          ;--------------------------------------
+DIG_3               fcb       $C                  ; X
                     fcb       $C0                 ; Y
                     fcb       $01                 ; ON
                     fcb       $F                  ; X
@@ -573,10 +536,8 @@ RETURN
                     fcb       $32                 ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-
-                    org       DIG_4
-                    fcb       $3C                 ; X
+          ;--------------------------------------
+DIG_4               fcb       $3C                 ; X
                     fcb       $EE                 ; Y
                     fcb       $01                 ; ON
                     fcb       $7                  ; X
@@ -589,11 +550,8 @@ RETURN
                     fcb       $9                  ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-
-
-                    org       DIG_5
-                    fcb       $3A                 ; X
+          ;--------------------------------------
+DIG_5               fcb       $3A                 ; X
                     fcb       $F3                 ; Y
                     fcb       $01                 ; ON
                     fcb       $A                  ; X
@@ -620,9 +578,8 @@ RETURN
                     fcb       $11                 ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       DIG_6
-                    fcb       $3A                 ; X
+          ;--------------------------------------
+DIG_6               fcb       $3A                 ; X
                     fcb       $E2                 ; Y
                     fcb       $01                 ; ON
                     fcb       $18                 ; X
@@ -640,10 +597,8 @@ RETURN
 
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-
-                    org       DIG_7
-                    fcb       $8                  ; X
+          ;--------------------------------------
+DIG_7               fcb       $8                  ; X
                     fcb       $F0                 ; Y
                     fcb       $01                 ; ON
                     fcb       $3D                 ; X
@@ -652,10 +607,8 @@ RETURN
                     fcb       $F                  ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-
-                    org       DIG_8
-                    fcb       $1F                 ; X
+          ;--------------------------------------
+DIG_8               fcb       $1F                 ; X
                     fcb       $7C                 ; Y
                     fcb       $01                 ; ON
                     fcb       $39                 ; X
@@ -676,9 +629,8 @@ RETURN
                     fcb       $81                 ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       DIG_9
-                    fcb       $3A                 ; X
+          ;--------------------------------------
+DIG_9               fcb       $3A                 ; X
                     fcb       $FA                 ; Y
                     fcb       $01                 ; ON
                     fcb       $B                  ; X
@@ -695,10 +647,8 @@ RETURN
                     fcb       $12                 ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-
-                    org       LET_A
-                    fcb       $4                  ; X
+          ;--------------------------------------
+LET_A               fcb       $4                  ; X
                     fcb       $4                  ; Y
                     fcb       $01                 ; ON
                     fcb       $1E                 ; X
@@ -713,9 +663,8 @@ RETURN
                     fcb       $77                 ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       LET_B
-                    fcb       $9                  ; X
+          ;--------------------------------------
+LET_B               fcb       $9                  ; X
                     fcb       $9                  ; Y
                     fcb       $01                 ; ON
                     fcb       $A                  ; X
@@ -738,10 +687,8 @@ RETURN
                     fcb       $7                  ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-
-                    org       LET_C
-                    fcb       $3C                 ; X
+          ;--------------------------------------
+LET_C               fcb       $3C                 ; X
                     fcb       $F9                 ; Y
                     fcb       $01                 ; ON
                     fcb       $21                 ; X
@@ -768,10 +715,8 @@ RETURN
                     fcb       $C                  ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-
-                    org       LET_D
-                    fcb       $9                  ; X
+          ;--------------------------------------
+LET_D               fcb       $9                  ; X
                     fcb       $8                  ; Y
                     fcb       $01                 ; ON
                     fcb       $A                  ; X
@@ -800,10 +745,8 @@ RETURN
                     fcb       $9                  ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-
-                    org       LET_E
-                    fcb       $3C                 ; X
+          ;--------------------------------------
+LET_E               fcb       $3C                 ; X
                     fcb       $FA                 ; Y
                     fcb       $01                 ; ON
                     fcb       $6                  ; X
@@ -820,9 +763,8 @@ RETURN
                     fcb       $81                 ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       LET_F
-                    fcb       $6                  ; X
+          ;--------------------------------------
+LET_F               fcb       $6                  ; X
                     fcb       $9                  ; Y
                     fcb       $01                 ; ON
                     fcb       $8                  ; X
@@ -837,9 +779,8 @@ RETURN
                     fcb       $77                 ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       LET_G
-                    fcb       $3C                 ; X
+          ;--------------------------------------
+LET_G               fcb       $3C                 ; X
                     fcb       $F9                 ; Y
                     fcb       $01                 ; ON
                     fcb       $7                  ; X
@@ -854,9 +795,8 @@ RETURN
                     fcb       $6F                 ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       LET_H
-                    fcb       $7                  ; X
+          ;--------------------------------------
+LET_H               fcb       $7                  ; X
                     fcb       $F8                 ; Y
                     fcb       $01                 ; ON
                     fcb       $7                  ; X
@@ -875,18 +815,16 @@ RETURN
                     fcb       $8A                 ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       LET_I
-                    fcb       $28                 ; X
+          ;--------------------------------------
+LET_I               fcb       $28                 ; X
                     fcb       $C                  ; Y
                     fcb       $01                 ; ON
                     fcb       $29                 ; X
                     fcb       $F6                 ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       LET_J
-                    fcb       $22                 ; X
+          ;--------------------------------------
+LET_J               fcb       $22                 ; X
                     fcb       $FB                 ; Y
                     fcb       $01
                     fcb       $3C                 ; X
@@ -903,9 +841,8 @@ RETURN
                     fcb       $30                 ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       LET_K
-                    fcb       $14                 ; X
+          ;--------------------------------------
+LET_K               fcb       $14                 ; X
                     fcb       $F9                 ; Y
                     fcb       $01                 ; ON
                     fcb       $14                 ; X
@@ -920,9 +857,8 @@ RETURN
                     fcb       $C                  ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       LET_L
-                    fcb       $6                  ; X
+          ;--------------------------------------
+LET_L               fcb       $6                  ; X
                     fcb       $F8                 ; Y
                     fcb       $01                 ; ON
                     fcb       $6                  ; X
@@ -931,9 +867,8 @@ RETURN
                     fcb       $C                  ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       LET_M
-                    fcb       $7                  ; X
+          ;--------------------------------------
+LET_M               fcb       $7                  ; X
                     fcb       $C                  ; Y
                     fcb       $01                 ; ON
                     fcb       $7                  ; X
@@ -946,9 +881,8 @@ RETURN
                     fcb       $9                  ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       LET_N
-                    fcb       $7                  ; X
+          ;--------------------------------------
+LET_N               fcb       $7                  ; X
                     fcb       $9                  ; Y
                     fcb       $01                 ; ON
                     fcb       $7                  ; X
@@ -959,9 +893,8 @@ RETURN
                     fcb       $F5                 ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       LET_O
-                    fcb       $22                 ; X
+          ;--------------------------------------
+LET_O               fcb       $22                 ; X
                     fcb       $6                  ; Y
                     fcb       $01                 ; ON
                     fcb       $6                  ; X
@@ -982,10 +915,8 @@ RETURN
                     fcb       $8                  ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       LET_P
-
-                    fcb       $8                  ; X
+          ;--------------------------------------
+LET_P               fcb       $8                  ; X
                     fcb       $A                  ; Y
                     fcb       $01                 ; ON
                     fcb       $9                  ; X
@@ -998,10 +929,8 @@ RETURN
                     fcb       $95                 ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-
-                    org       LET_Q
-                    fcb       $22                 ; X
+          ;--------------------------------------
+LET_Q               fcb       $22                 ; X
                     fcb       $6                  ; Y
                     fcb       $6                  ; X
                     fcb       $43                 ; Y
@@ -1030,9 +959,8 @@ RETURN
                     fcb       $8                  ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       LET_R
-                    fcb       $9                  ; X
+          ;--------------------------------------
+LET_R               fcb       $9                  ; X
                     fcb       $A                  ; Y
                     fcb       $01                 ; OFF
                     fcb       $7                  ; X
@@ -1049,9 +977,8 @@ RETURN
                     fcb       $A                  ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       LET_S
-                    fcb       $3A                 ; X
+          ;--------------------------------------
+LET_S               fcb       $3A                 ; X
                     fcb       $C7                 ; Y
                     fcb       $01                 ; ON
                     fcb       $21                 ; X
@@ -1072,9 +999,8 @@ RETURN
                     fcb       $32                 ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       LET_T
-                    fcb       $4                  ; X
+          ;--------------------------------------
+LET_T               fcb       $4                  ; X
                     fcb       $FA                 ; Y
                     fcb       $01                 ; ON
                     fcb       $3C                 ; X
@@ -1087,9 +1013,8 @@ RETURN
                     fcb       $9                  ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       LET_U
-                    fcb       $3                  ; X
+          ;--------------------------------------
+LET_U               fcb       $3                  ; X
                     fcb       $FA                 ; Y
                     fcb       $01                 ; ON
                     fcb       $5                  ; X
@@ -1100,9 +1025,8 @@ RETURN
                     fcb       $FA                 ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       LET_V
-                    fcb       $4                  ; X
+          ;--------------------------------------
+LET_V               fcb       $4                  ; X
                     fcb       $FA                 ; Y
                     fcb       $01                 ; ON
                     fcb       $1F                 ; X
@@ -1111,9 +1035,8 @@ RETURN
                     fcb       $FA                 ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       LET_W
-                    fcb       $5                  ; X
+          ;--------------------------------------
+LET_W               fcb       $5                  ; X
                     fcb       $FA                 ; Y
                     fcb       $01                 ; ON
                     fcb       $D                  ; X
@@ -1126,9 +1049,8 @@ RETURN
                     fcb       $F9                 ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       LET_X
-                    fcb       $6                  ; X
+          ;--------------------------------------
+LET_X               fcb       $6                  ; X
                     fcb       $9                  ; Y
                     fcb       $01                 ; ON
                     fcb       $39                 ; X
@@ -1141,9 +1063,8 @@ RETURN
                     fcb       $9                  ; Y
                     fcb       $01                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       LET_Y
-                    fcb       $6                  ; X
+          ;--------------------------------------
+LET_Y               fcb       $6                  ; X
                     fcb       $F9                 ; Y
                     fcb       $01                 ; ON
                     fcb       $20                 ; X
@@ -1156,9 +1077,8 @@ RETURN
                     fcb       $1E                 ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       LET_Z
-                    fcb       $6                  ; X
+          ;--------------------------------------
+LET_Z               fcb       $6                  ; X
                     fcb       $FA                 ; Y
                     fcb       $01                 ; ON
                     fcb       $3C                 ; X
@@ -1169,9 +1089,8 @@ RETURN
                     fcb       $4                  ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
-
-                    org       MODE4_PATTERN
-                    fcb       $71                 ; X
+          ;--------------------------------------
+MODE4_PATTERN       fcb       $71                 ; X
                     fcb       $75                 ; Y
                     fcb       $01                 ; ON
                     fcb       $7C                 ; X
@@ -1234,3 +1153,13 @@ RETURN
                     fcb       $E                  ; Y
                     fcb       $00                 ; OFF
                     fcb       $FF                 ; END
+
+;*******************************************************************************
+                    #VECTORS
+;*******************************************************************************
+
+                    org       $FFF2
+                    dw        ISR_Handler
+
+                    org       $FFFE
+                    dw        Start
