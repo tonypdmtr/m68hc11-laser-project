@@ -7,15 +7,14 @@
 
 *THIS PROGRAM IS A LASER PROJECT PROGRAM
 
-
 ****************************************************************************************
-*******				START OF THE PROGRAM	    ********	
+*******				START OF THE PROGRAM	    ********
 ****************************************************************************************
 
        ORG	$E000	WHERE TO STORE THE PROGRAM (BENEFIT OF ASSEMBLER)
 
 ****************************************************************************************
-*******				DEFINE CONSTANTS		   ********	
+*******				DEFINE CONSTANTS		   ********
 ****************************************************************************************
 COUNTER		EQU	$10		COUNTER
 SHIFT_VAL	EQU     18		SHIFT MAX VALUE
@@ -23,8 +22,8 @@ BUFFER		EQU	$20		BUFFER LOCATION
 MODE_L		EQU	$30		MODE LOCATION
 SHIFT_L		EQU	$40		SHIFT LOCATION
 X_OFFSET	EQU	$50		X_OFFSET LOCATION.
-MULTLASSTR	EQU	$60		WHEN MULTIPLYING BY 32, WE NEED THIS LOCATION 
-DELCOUNT	EQU	$70		DELAY COUNTER HOLDER				
+MULTLASSTR	EQU	$60		WHEN MULTIPLYING BY 32, WE NEED THIS LOCATION
+DELCOUNT	EQU	$70		DELAY COUNTER HOLDER
 STACK		EQU	$FF		STACK VALUE
 OFF		EQU	$A000		LASER OFF
 ON		EQU	$A001		LASER ON
@@ -43,7 +42,7 @@ ADR_READ	EQU	$1031		READ CONVERTED ANALOG FROM HERE
 MODE4_PATTERN	EQU 	$F4C0		MODE_4 LOCATION
 
 ****************************************************************************************
-*******				CHARACTERS LOCATION		   ********	
+*******				CHARACTERS LOCATION		   ********
 ****************************************************************************************
 
 DIG_0	EQU	$F040	Digit 0 to Digit 9 sequentially.
@@ -85,7 +84,7 @@ LET_Z	EQU	$F4A0
 
 ****************************************************************************************
 *******				INITIALIZATION					********
-*Since we are using subroutines and interrupts, some initializations are a must.	
+*Since we are using subroutines and interrupts, some initializations are a must.
 *Among them are to clear index, initialize the stack,and initialize the buffer.
 ****************************************************************************************`
 	CLI			CLEAR INTERRUPT INDEX
@@ -141,7 +140,6 @@ HERE7 		BRSET		0,X	$80	HERE7		BRANCH BACK HERE IF BF = 1
 
 		RTS						ONLY RETURN IF NOT DONE WITH INITIALIZING
 
-
 *******			INITIALIZATION OF PIA		     ********
 
 PIA_INIT
@@ -161,7 +159,7 @@ PIA_INIT
 		LDX		#PIA_CRB		LOAD CRB VALUE IN X
 		STAA		PIA_DDRB		STORE FF IN B002 (SET DDRB TO FF)
 		BSET		0,X %00000100		SET BIT 2 OF CRB TO 1 (ACCESS DRB)
-		
+
 		JSR		DELAY			TO ENSURE COMPLETE ADPU INITIALIZAION, DELAY
 
 * ANOTHER INITIALIZATION OF D/A AFTER AT LEAST 100us
@@ -169,17 +167,17 @@ PIA_INIT
 		BSET		0,X %00100000		SET BIT 5
 
 ****************************************************************************************
-*******					MAIN		     			********	
+*******					MAIN		     			********
 ****************************************************************************************`
 
-MAIN	
+MAIN
 	LDAA		ADR_READ	LOAD A WITH A/D CONVERTER VALUE
 	STAA		$E103		PROGRAM IT OUT AT $E103 (FOR THE SAKE OF LOGIC ANALYZER)
 	CLR 		COUNTER		CLEAR COUNTER LOCATION
 	INC 		COUNTER		STORE A 1 IN COUNTER LOCATION
 	LDX 		#MODE_L		LOADING X WITH MODE_LOC
        	LDAA		COUNTER		LOAD COUNTER  IN A
-       	CMPA		0,X		CHECK IF MODE IS EQUAL TO COUNTER (1 SO FAR) 
+       	CMPA		0,X		CHECK IF MODE IS EQUAL TO COUNTER (1 SO FAR)
        	BEQ		MAIN		IF YES BRANCH TO MAIN
        	INC		COUNTER		MAKE COUNTER 2
        	LDAA		COUNTER		LOAD 2 IN A
@@ -201,14 +199,13 @@ GOMODE_3
 GOMODE_4
 	JMP	MODE_4	JUMP TO MODE 4 		JUMP TO MODE 4
 
-
 ****************************************************************************************
-*******				MODE_2	    		 ********	
+*******				MODE_2	    		 ********
 ****************************************************************************************
 
 MODE_2
 
-CHECKB	
+CHECKB
 	LDAA		#$FF			LOADS $FF INTO ACCUMULATOR A
 	CMPA		0,Y			CHECK IF VALUE IN BUFFER IS $FF
        	BEQ		MAIN			IF BUFFER CONTAINS $FF, GO BACK TO MAIN
@@ -232,7 +229,6 @@ NEXTY
 	JSR		DISPLAY			JUMP TO SUBROUTINE
 	BRA		NEXTY			BRANCH
 
-
 LASOFFNEXTY
 	JSR		LASOFF			JUMP TO SUBROUTINE
 	INX					INCREMENT X
@@ -243,21 +239,20 @@ LASONNEXTY
 	INX					INCREMENT X
 	BRA		NEXTY			BRANCH TO NEXTY
 
-
 LASOFFADJ
 	JSR 		LASOFF		JUMP TO LASOFF SUBROUTINE
 	BRA		ADJUSTX		BRANCH
 
-ADJUSTX	
+ADJUSTX
       	LDX		#X_OFFSET	LOAD X WITH THE ADDRESS OF THE OFFSET
        	LDAA		0,X		LOAD A WITH THE VALUE IN X
 	ADDA		#64		ADD 64 ON ACC VALUE
-       	CMPA  		#255		COMPARE IT WITH 255	
+       	CMPA  		#255		COMPARE IT WITH 255
        	BLO		ADJBUFF		IF GREATER OR EQUAL GO ADJSUT BUFFER
        	LDAA		#00		LOAD A WITH 0
        	BRA		ADJBUFF		BRANCH TO ADJUST BUFFER
 
-ADJBUFF	
+ADJBUFF
 	STAA		0,X		RESET THE X_OFFSET
 	INY				INCREMENT THE CURRENT BUFFER POINTER
 	LDAA		0,Y
@@ -265,21 +260,20 @@ ADJBUFF
 	BEQ		RES_Y
 	CPY		#$24		COMPARE IT WITH THE VALUE 24
 	BLO		GOMAIN		IF LESS BRA TO MAIN
-	LDY		#BUFFER		ELSE RESET IT WITH 20	
+	LDY		#BUFFER		ELSE RESET IT WITH 20
 	BRA		GOMAIN		AND GO BACK TO MAIN
 
 RES_Y
 	LDY		#BUFFER		ELSE RESET IT WITH 20
-	CLR		X_OFFSET	
-	BRA		GOMAIN		AND GO BACK TO MAIN	
-
+	CLR		X_OFFSET
+	BRA		GOMAIN		AND GO BACK TO MAIN
 
 ****************************************************************************************
-*******				MODE_3	    		 ********	
+*******				MODE_3	    		 ********
 ****************************************************************************************
 
-MODE_3	
-	
+MODE_3
+
 	LDX   		#MODE_3_STR		LOAD X WITH MODE_3_STR LOCATION
 NEXTY_3
 	LDAA		#$FF			LOAD #$FF INTO ACCUMULATOR A
@@ -291,7 +285,7 @@ NEXTY_3
 	LDAA		 #$01			LOAD #$01 INTO ACCUMULATOR A
 	CMPA 		0,X			COMPARE THE Y COORDINATE TO $01
 	BEQ 		GOONNEXTY3		TURN LASER ON
-	JSR 		DISPLAY			JUMP TO SUBROUTINE	
+	JSR 		DISPLAY			JUMP TO SUBROUTINE
 	BRA		NEXTY_3			BRANCH
 
 GOOFFMAIN
@@ -319,7 +313,7 @@ DISPLAY
 	INX
 	RTS
 
-LASON	
+LASON
 		LDAA		#$FF		LOAD 0 IN A
 		STAA		ON		STORE IN A000 AND TURN ON
 		JSR 		DELAY		JUMP TO DELAY
@@ -328,7 +322,7 @@ LASON
 LASOFF
 		LDAA		#$FF		LOAD 0 IN A
 		STAA		OFF		STORE IN A000 AND TURN OFF
-		JSR 		DELAY		JUMP TO DELAY		
+		JSR 		DELAY		JUMP TO DELAY
 		RTS
 
 GOMAIN
@@ -345,7 +339,7 @@ AGAIN		CMPA		DELCOUNT (3)		COMPARE 14 TO THE VAL
 
 AGAIN4		CLR		DELCOUNT (3)		LOAD X WITH 0
 		LDAA		ADR_READ
-	
+
 AGAIN5		CMPA		DELCOUNT (3)		COMPARE 14 TO THE VAL
 		BEQ 		SUBRET(3)		IF 14 GO RETURN
 		INC		DELCOUNT (6)		INCREMENT DELAY COUNTER
@@ -362,10 +356,10 @@ SUBRET
 		RTS					RETURN FROM SUBROUTINE.
 
 ****************************************************************************************
-*******				MODE_4	    		 ********	
+*******				MODE_4	    		 ********
 ****************************************************************************************
-MODE_4	
-	
+MODE_4
+
 	LDX   		#MODE4_PATTERN		LOAD X WITH MODE_3_STR LOCATION
 NEXTY_4
 	LDAA		#$FF			LOAD #$FF INTO ACCUMULATOR A
@@ -380,7 +374,6 @@ NEXTY_4
 	JSR 		DISPLAY
 	BRA		NEXTY_4
 
-
 GOOFFNEXTY4
 	JSR		LASOFF		JUMP TO SUBROUTINE
 	INX					INCREMENT X
@@ -392,24 +385,24 @@ GOONNEXTY4
 	BRA 		NEXTY_4		BRANCH
 
 ****************************************************************************************
-*******		INTERRUPT BLOCK		     ********	
+*******		INTERRUPT BLOCK		     ********
 ****************************************************************************************
-ISR	
+ISR
 	LDAB		KEYBD			READ FROM KEYBOARD
 	CMPB		#18			COMPARE THE KEY VALUE TO MODE
 	BEQ		MODE			GO UPDATE MODE
 	CMPB		#19			ELSE COMPARE TO 19
 	BEQ		SHIFT			IF EQUAL GO UPDATE SHIFT
 	ADDB		SHIFT_L	           	 ELSE ADD B TO THE SHIFT VALUE
-       CLR		SHIFT_L 		CLEAR SHIFT LOCATION    
-       LDY		#BUFFER		LOAD Y WITH BUFFER VALUE                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
-       
-CHECKBUF 
+       CLR		SHIFT_L 		CLEAR SHIFT LOCATION
+       LDY		#BUFFER		LOAD Y WITH BUFFER VALUE
+
+CHECKBUF
        LDAA		#$FF			LOAD A WITH FF
 	CMPA		0,Y			COMPARE A WITH WHAT IS POINTED TO BY Y
 	BNE		INCBUF		BRANCH NOT EQUAL
 STORE	STAB	 	0,Y			STORE THE KEY IN BUFFER
-	LDX		#ASCII_TABLE		LOAD X WITH ACSCII_TABLE LOCATION 
+	LDX		#ASCII_TABLE		LOAD X WITH ACSCII_TABLE LOCATION
        ABX					ADD ACCUMULATOR B TO X
        LDAA		0,X			LOAD IN ACC A WHAT IS POINTED TO BY Y
 HERE8 	BRSET		0,X	$80	HERE8		BRANCH BACK HERE IF BF = 1
@@ -417,12 +410,12 @@ HERE8 	BRSET		0,X	$80	HERE8		BRANCH BACK HERE IF BF = 1
 HERE9 	BRSET		0,X	$80	HERE9		BRANCH BACK HERE IF BF = 1
 	BRA 		RETURN		BRANCH
 
-INCBUF	
+INCBUF
 	INY			 		INCREMENT Y
 	CPY		#$24			COMPARE Y TO 24
 	BNE 		CHECKBUF		BRANCH NOT EQUAL
 	BRA		RETURN		RETURN
-	
+
 MODE
 	LDAA		COUNTER
 	STAA		$F101
@@ -437,9 +430,9 @@ MODE
 	BNE		RETURN		IF LESS RETURN
        CLR		MODE_L		ELSE	CLEAR THE MODE
        INC		MODE_L		MAKE IT A 1
-       BRA 		RETURN		BRANCH TO RETURN		
+       BRA 		RETURN		BRANCH TO RETURN
 
-SHIFT	
+SHIFT
 	LDAA		SHIFT_L		LOAD A WITH THE SHIFT VALUE
 	CMPA		#0			COMPARE IF IT IS 0
 	BEQ		NOW20			IF 0, GO MAKE IT 20
@@ -455,7 +448,7 @@ NOW20
 CLEAR
 	JSR		INIT_LCD
 	CLR		X_OFFSET		CLEAR X_OFFSET
-        CLR		SHIFT_L		CLEAR SHIFT	
+        CLR		SHIFT_L		CLEAR SHIFT
 	LDX		#BUFFER		LOAD THE ADDRESS OF BUFFER IN X
 	LDAA		#$FF			LOAD VALUE FF IN ACC A
 CLRAG	STAA		0,X			STORE WHAT IS STORED IN ACC IN THE BUFFER
@@ -467,20 +460,19 @@ CLRAG	STAA		0,X			STORE WHAT IS STORED IN ACC IN THE BUFFER
 RETURN
 	RTI					RETURN FROM THE INTERRUPT
 ****************************************************************************************
-*******		CONCLUDING LINES OF CODE		     ********	
+*******		CONCLUDING LINES OF CODE		     ********
 ****************************************************************************************
-		
-*******		LCDSTRING		     ********	
+
+*******		LCDSTRING		     ********
 	ORG	ASCII_TABLE
 	FCB	$30, $31, $32, $33, $34,$35, $36, $37, $38, $39
 	FCB	$41, $42, $43, $44, $45, $46, $47, $48, $49, $4A, $4B, $4C, $4D, $4E, $4F, $50, $51
         FCB	$52, $53, $54, $55, $56, $57, $58, $59, $5A
 
-*******		MODE 3 LASER STRING		     ********	
+*******		MODE 3 LASER STRING		     ********
 	ORG	MODE_3_STR			MODE_3_VECTOR
 	FCB	5,5,01,5,251,251,251,251,5,5,5,251,251,00,05,251,01,251,5,00,$FF
 
-	
 	ORG	$FFF2	INTERRUPT VECTOR
 	FDB	ISR				FORM INTERRUPT VECTOR BYTE
 	ORG	$FFFE	MOVES ASSEMBLER OUTPUT LOCATION TO $FFFE (FOR HARDWARE)
@@ -511,7 +503,6 @@ RETURN
 	FCB	$D	Y
 	FCB	$00	OFF
 	FCB	$FF    END
-
 
 	ORG    DIG_2
 	FCB	$E	X
@@ -575,7 +566,6 @@ RETURN
 	FCB	$00	OFF
 	FCB	$FF    END
 
-
 	ORG    DIG_4
 	FCB	$3C	X
 	FCB	$EE	Y
@@ -590,8 +580,6 @@ RETURN
 	FCB	$9	Y
 	FCB	$00	OFF
 	FCB	$FF    END
-
-
 
 	ORG    DIG_5
 	FCB	$3A	X
@@ -642,7 +630,6 @@ RETURN
 	FCB	$00	OFF
 	FCB	$FF    END
 
-
 	ORG    DIG_7
 	FCB	$8	X
 	FCB	$F0	Y
@@ -653,7 +640,6 @@ RETURN
 	FCB	$F	Y
 	FCB	$00	OFF
 	FCB	$FF    END
-
 
 	ORG    DIG_8
 	FCB	$1F	X
@@ -697,7 +683,6 @@ RETURN
 	FCB	$00	OFF
 	FCB	$FF    END
 
-	
 	ORG    LET_A
 	FCB	$4	X
 	FCB	$4	Y
@@ -740,7 +725,6 @@ RETURN
 	FCB	$00	OFF
 	FCB	$FF    END
 
-
 	ORG    LET_C
 	FCB	$3C	X
 	FCB	$F9	Y
@@ -769,7 +753,6 @@ RETURN
 	FCB	$C	Y
 	FCB	$00	OFF
 	FCB	$FF    END
-
 
 	ORG    LET_D
 	FCB	$9	X
@@ -801,7 +784,6 @@ RETURN
 	FCB	$9	Y
 	FCB	$00	OFF
 	FCB	$FF    END
-
 
 	ORG    LET_E
 	FCB	$3C	X
@@ -985,7 +967,7 @@ RETURN
 	FCB	$FF	END
 
 	ORG    LET_P
-	
+
 	FCB	$8	X
 	FCB	$A	Y
 	FCB	$01	ON
@@ -999,7 +981,6 @@ RETURN
 	FCB	$95	Y
 	FCB	$00	OFF
 	FCB	$FF	END
-
 
 	ORG    LET_Q
 	FCB	$22	X
@@ -1236,9 +1217,6 @@ RETURN
 	FCB	$00	OFF
 	FCB	$FF    END
 
-
-
-
 ****************************************************************************************
-*******				       END				********	
+*******				       END				********
 ****************************************************************************************
